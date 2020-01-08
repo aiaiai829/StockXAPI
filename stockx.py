@@ -37,12 +37,10 @@ class StockXAPI:
     def _get_login_info(self):
         url = 'https://stockx.com/login'
 
-        headers = {'content-type': 'application/json',
-                   'cookie': '_csrf=vlM3ad_qXdZhY1orZPZ7oOxO;',
-                   'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2)'
-                                 ' AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36'}
+        user_agent = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36'
+                                    ' (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36'}
 
-        resp = requests.get(url, headers=headers)
+        resp = requests.get(url, headers=user_agent)
 
         # Get the value of the csrf cookie.
         cookie_headers = resp.headers['Set-Cookie']
