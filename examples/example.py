@@ -1,4 +1,4 @@
-from src.stockx import StockXAPI
+from stockx import StockXAPI
 import matplotlib.pyplot as plt
 from datetime import date
 

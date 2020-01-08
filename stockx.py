@@ -6,16 +6,23 @@ from bs4 import BeautifulSoup
 
 
 class StockXAPI:
-    def __init__(self):
+    def __init__(self, username=None, password=None):
+        self.username = ''
+        self.password = ''
         self.client_id = ''
         self.token = ''
 
+        if username and password:
+            self.login(username, password)
+
     def _process_json(self, json_data, output_data):
+        # Split output data categories into first and second layers
         return_data = [i for i in output_data if type(i) == str]
         secondary_return_data = [i for i in output_data if type(i) == list]
 
         product_data = {}
 
+        # Add categories from output_data that are in the json to product_data
         for key in return_data:
             if key in json_data:
                 product_data[key] = json_data[key]
@@ -28,7 +35,8 @@ class StockXAPI:
         return product_data
 
     def _get_login_info(self):
-        url='https://stockx.com/login'
+        url = 'https://stockx.com/login'
+
         headers = {'content-type': 'application/json',
                    'cookie': '_csrf=vlM3ad_qXdZhY1orZPZ7oOxO;',
                    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2)'
@@ -36,18 +44,20 @@ class StockXAPI:
 
         resp = requests.get(url, headers=headers)
 
+        # Get the value of the csrf cookie.
         cookie_headers = resp.headers['Set-Cookie']
         cookie_csrf_end = cookie_headers.find(';') + 1
         cookie_csrf = cookie_headers[:cookie_csrf_end]
 
+        # Get the base 64 string from the html that contains necessary information.
         soup = BeautifulSoup(resp.content, 'html.parser')
         script_content = str(soup.body.find_all('script')[5])
 
         config_start = script_content.find('window.atob') + 13
         config_end = script_content.find("'))));")
-
         config_data = script_content[config_start:config_end]
 
+        # Get the csrf and the client id.
         output = json.loads(base64.b64decode(config_data))
         client_id = output['clientID']
         data_csrf = output['internalOptions']['_csrf']
@@ -80,11 +90,20 @@ class StockXAPI:
         
         resp = requests.post(login_url, headers=login_headers, json=login_data)
         soup = BeautifulSoup(resp.content, 'html.parser')
-        token = soup.find('input', {'name': 'wresult'})['value']
+
+        # Try to get the authentication token from the returned html.
+        try:
+            token = soup.find('input', {'name': 'wresult'})['value']
+        except TypeError:
+            print('Incorrect username or password')
+            return None
+
+        self.username = username
+        self.password = password
 
         self.token = token
 
-    def search_items(self, search_term, output_data=None, page=1, max_searches=-1):
+    def search_items(self, search_term, output_data, page=1, max_searches=-1):
         """
         Searches a term on StockX using the browse API function.
         :param search_term: Term to search for on StockX.
@@ -94,14 +113,13 @@ class StockXAPI:
         :param max_searches: How many items to search for.
         :return: Returns a list containing dictionaries of data specified in output_data
         """
-        if output_data is None:
-            output_data = ['name']
         search_term = search_term.replace(' ', '%20')
         url = 'https://stockx.com/api/browse?&page={}&_search={}&dataType=product&country=US'.format(page, search_term)
 
         user_agent = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36'
                                     ' (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36'}
 
+        # Get the product list and add each product to final_data.
         resp = requests.get(url, headers=user_agent)
         data = json.loads(resp.content)['Products'][:max_searches]
 
@@ -111,7 +129,7 @@ class StockXAPI:
 
         return final_data
 
-    def get_item_data(self, item_id, output_data=None):
+    def get_item_data(self, item_id, output_data):
         """
         Gets data for individual items using the StockX product API function.
         :param item_id: id, uuid, productUuid or urlKey of the item to get data on.
@@ -119,17 +137,15 @@ class StockXAPI:
         [market, lastSale], [market, lowestAsk], [media, imageURL].
         :return: Returns a dictionary of values specified in output_data.
         """
-        if output_data is None:
-            output_data = ['name']
-
         url = 'https://stockx.com/api/products/{}'.format(item_id)
 
         user_agent = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36'
                                     ' (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36'}
+        # Get the product data for the item.
         resp = requests.get(url, headers=user_agent)
-
         data = json.loads(resp.content)['Product']
 
+        # Get the market data for the item.
         market_data_url = 'https://stockx.com/api/products/{}/market'.format(item_id)
         resp = requests.get(market_data_url, headers=user_agent)
         market_data = json.loads(resp.content)['Market']
@@ -159,6 +175,7 @@ class StockXAPI:
         x = []
         y = []
 
+        # Append date and price to x and y
         for timestamp, price in data:
             x.append(datetime.fromtimestamp(int(timestamp / 1000)))
             y.append(price)
