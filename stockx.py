@@ -64,12 +64,6 @@ class StockXAPI:
         return cookie_csrf, data_csrf
 
     def login(self, username, password):
-        """
-        Logs into StockX with username and password and sets self.token to the authentication token.
-        :param username: Account username.
-        :param password: Account password.
-        :return: None.
-        """
         login_url = 'https://accounts.stockx.com/usernamepassword/login'
 
         cookie_csrf, data_csrf = self._get_login_info()
@@ -102,15 +96,6 @@ class StockXAPI:
         self.token = token
 
     def search_items(self, search_term, output_data, page=1, max_searches=-1):
-        """
-        Searches a term on StockX using the browse API function.
-        :param search_term: Term to search for on StockX.
-        :param output_data: Which pieces of data from the JSON string to return eg. name, id, category, brand, year or
-        [market, lastSale], [market, lowestAsk], [media, imageURL].
-        :param page: Which page of products to search on.
-        :param max_searches: How many items to search for.
-        :return: Returns a list containing dictionaries of data specified in output_data
-        """
         search_term = search_term.replace(' ', '%20')
         url = 'https://stockx.com/api/browse?&page={}&_search={}&dataType=product&country=US'.format(page, search_term)
 
@@ -128,13 +113,6 @@ class StockXAPI:
         return final_data
 
     def get_item_data(self, item_id, output_data):
-        """
-        Gets data for individual items using the StockX product API function.
-        :param item_id: id, uuid, productUuid or urlKey of the item to get data on.
-        :param output_data: Which pieces of data from the JSON string to return eg. name, id, category, brand, year or
-        [market, lastSale], [market, lowestAsk], [media, imageURL].
-        :return: Returns a dictionary of values specified in output_data.
-        """
         url = 'https://stockx.com/api/products/{}'.format(item_id)
 
         user_agent = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36'
@@ -153,13 +131,6 @@ class StockXAPI:
         return final_data
 
     def get_past_prices(self, item_id, start_date='all', end_date=None, data_points=100):
-        """
-        Get the sale prices of an item over time.
-        :param item_id: Id of item to use.
-        :param start_date: When to start the data, use all for all time.
-        :param data_points: How many points to return
-        :return: Lists with x and y values of price data
-        """
         url = 'https://stockx.com/api/products/{}/chart?start_date={}&end_date={}' \
               '&intervals={}&format=highstock&currency=USD&country=US'.format(item_id, start_date, end_date,
                                                                               data_points)
